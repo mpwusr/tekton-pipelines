@@ -1,0 +1,31 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: go-build-push-run
+spec:
+  pipelineRef:
+    name: go-build-push
+  params:
+    - name: GIT_URL
+      value: https://github.com/YOURORG/YOURGOAPP.git
+    - name: GIT_REVISION
+      value: main
+    - name: IMAGE
+      value: image-registry.openshift-image-registry.svc:5000/YOURNS/goapp:latest
+  workspaces:
+    - name: shared-workspace
+      volumeClaimTemplate:
+        metadata: {}
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 1Gi
+    - name: go-cache
+      volumeClaimTemplate:
+        metadata: {}
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 2Gi

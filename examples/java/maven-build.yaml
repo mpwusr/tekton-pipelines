@@ -1,0 +1,26 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: maven-package
+spec:
+  params:
+    - name: GOALS
+      type: string
+      default: "clean test package"
+  workspaces:
+    - name: source
+    - name: maven-cache
+      optional: true
+  steps:
+    - name: mvn
+      image: registry.access.redhat.com/ubi9/openjdk-17:latest
+      workingDir: $(workspaces.source.path)/repo
+      env:
+        - name: MAVEN_OPTS
+          value: "-Dmaven.repo.local=$(workspaces.maven-cache.path)/.m2"
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        # UBI OpenJDK image doesn't include Maven by default; install quickly:
+        microdnf install -y maven && microdnf clean all
+        mvn -B $(params.GOALS)

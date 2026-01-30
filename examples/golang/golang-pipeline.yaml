@@ -1,0 +1,55 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: go-build-push
+spec:
+  params:
+    - name: GIT_URL
+      type: string
+    - name: GIT_REVISION
+      type: string
+      default: main
+    - name: IMAGE
+      type: string
+    - name: DOCKERFILE
+      type: string
+      default: ./Dockerfile
+  workspaces:
+    - name: shared-workspace
+    - name: go-cache
+      optional: true
+  tasks:
+    - name: clone
+      taskRef:
+        name: git-clone-simple
+      params:
+        - name: url
+          value: $(params.GIT_URL)
+        - name: revision
+          value: $(params.GIT_REVISION)
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+
+    - name: go
+      runAfter: [clone]
+      taskRef:
+        name: go-test-build
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+        - name: go-cache
+          workspace: go-cache
+
+    - name: image
+      runAfter: [go]
+      taskRef:
+        name: buildah-build-push
+      params:
+        - name: IMAGE
+          value: $(params.IMAGE)
+        - name: DOCKERFILE
+          value: $(params.DOCKERFILE)
+      workspaces:
+        - name: source
+          workspace: shared-workspace
